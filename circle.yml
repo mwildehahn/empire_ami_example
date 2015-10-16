@@ -1,0 +1,14 @@
+# We build AMIs using packer, using the packer-ami-builder user
+machine:
+  timezone: America/Los_Angeles
+
+dependencies:
+  cache_directories:
+    - /home/ubuntu/bin
+  pre:
+    - cd ~/empire_ami; make download-packer
+
+test:
+  override:
+    - cd ~/empire_ami; MACHINE=true make build:
+        timeout: 1200

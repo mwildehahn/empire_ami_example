@@ -1,0 +1,5 @@
+- copy: src=etc/init/data-dog.conf dest=/etc/init/data-dog.conf
+  notify:
+    - restart_data_dog
+
+- service: name=data-dog state=started

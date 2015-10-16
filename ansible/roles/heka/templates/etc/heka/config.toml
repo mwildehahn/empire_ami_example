@@ -1,0 +1,14 @@
+[DockerLogInput]
+
+[DockerPayloadEncoder]
+type = "SandboxEncoder"
+filename = "/etc/heka/lua/encoders/docker_payload.lua"
+
+[TcpOutput]
+message_matcher = "TRUE"
+address = "{{tcp_output_address}}"
+encoder = "DockerPayloadEncoder"
+use_tls = true
+    [TcpOutput.tls]
+    root_cafile = "/etc/heka/tls/certs.pem"
+    client_auth = "RequireAndVerifyClientCert"

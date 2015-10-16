@@ -1,0 +1,63 @@
+# Setup the docker filesystem if a device exists
+- stat: path=/dev/xvdh
+  register: dev_xvdh
+- filesystem: fstype=ext4 dev=/dev/xvdh
+  when: dev_xvdh.stat.exists
+  register: new_docker_fs
+  notify:
+    - restart_docker
+
+- service: name=docker state=stopped
+  when: new_docker_fs|changed
+- mount: name=/var/lib/docker/aufs state=umounted
+  ignore_errors: yes
+  when: new_docker_fs|changed
+- mount: name=/var/lib/docker src=/dev/xvdh fstype=ext4 state=mounted
+  when: new_docker_fs|changed
+# Make absolutely sure aufs doesn't exist or docker freaks
+# https://github.com/docker/docker/issues/14026
+- mount: name=/var/lib/docker/aufs state=umounted
+  ignore_errors: yes
+  when: new_docker_fs|changed
+- file: path=/var/lib/docker/aufs state=absent
+  ignore_errors: yes
+  when: new_docker_fs|changed
+
+- copy: src=etc/default/docker dest=/etc/default/docker owner=root group=root mode=0644
+  tags:
+    - build_ami
+  notify:
+    - restart_docker
+
+- apt: name=linux-image-extra-{{ansible_kernel}}
+  tags: 
+    - build_ami
+- apt: name=linux-image-extra-virtual
+  tags: 
+    - build_ami
+- apt: name=apparmor
+  tags: 
+    - build_ami
+- apt: name=docker-engine=1.7.0-0~trusty
+  tags: 
+    - build_ami
+
+- copy: src=etc/init/docker.conf dest=/etc/init/docker.conf owner=root group=root mode=0644
+  tags:
+    - build_ami
+  notify:
+    - restart_docker
+
+# Create docker_maid cron job
+- copy: src=usr/sbin/docker_maid dest=/usr/sbin/docker_maid owner=root group=root mode=0755
+  tags: 
+    - build_ami
+- cron: name=docker_maid cron_file=docker_maid user=root minute="15" hour="2,10,18" job="/usr/sbin/docker_maid"
+  tags: 
+    - build_ami
+- name: Adding ubuntu to docker group
+  user: name=ubuntu groups=docker append=yes
+  tags: 
+    - build_ami
+
+- service: name=docker state=started

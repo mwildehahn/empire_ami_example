@@ -1,0 +1,17 @@
+- include_vars: heka.yml
+- file: path=/etc/heka/lua/encoders state=directory mode=0640 owner=root group=root
+- file: path=/etc/heka/tls state=directory mode=0640 owner=root group=root
+- copy: src=etc/heka/lua/encoders/docker_payload.lua dest=/etc/heka/lua/encoders/docker_payload.lua
+  notify:
+    - restart_heka
+- copy: src=etc/heka/tls/certs.pem dest=/etc/heka/tls/certs.pem
+  notify:
+    - restart_heka
+- template: src=etc/heka/config.toml dest=/etc/heka/config.toml mode=0640 owner=root group=root
+  notify:
+    - restart_heka
+- copy: src=etc/init/heka.conf dest=/etc/init/heka.conf
+  notify:
+    - restart_heka
+
+- service: name=heka state=started
